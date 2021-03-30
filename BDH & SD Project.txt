@@ -1,0 +1,90 @@
+*************Market Analysis in Banking Domain****************
+
+
+-Load data and create a Spark data frame.
+
+val df = spark.read.format("csv").option("header","true").option("inferschema","true").load("Project 3/Bank_full.csv")
+
+df.printSchema()
+
+df.show(10)
+
+
+
+- Give marketing success rate (No. of people subscribed / total no. of entries)   
+   - Give marketing failure rate
+
+val totCount = df.count().toDouble
+
+val suscount = df.filter($"y" === "yes").count().toDouble
+
+val succrate = suscount/totCount * 100
+
+val failrate = 100 - succrate
+
+
+
+- Give the maximum, mean, and minimum age of the average targeted customer
+
+df.select(max($"age")).show()
+
+df.select(min($"age")).show()
+
+df.select(avg($"age")).show()
+
+
+
+- Check the quality of customers by checking average balance, median balance of customers
+
+df.select(avg($"balance")).show() 
+
+df.createOrReplaceTempView("bankdata")
+
+spark.sql("select percentile(balance,0.5) as median from bankdata").show()
+
+
+
+- Check if age matters in marketing subscription for deposit
+
+df.groupBy("y").agg(count($"marital")).show()
+
+
+
+- Check if marital status mattered for a subscription to deposit
+
+df.groupBy("y").agg(avg($"age")).show()
+
+
+
+- Check if age and marital status together mattered for a subscription to deposit scheme
+
+df.groupBy("y").agg(count($"marital"), avg($"age")).show()
+
+
+
+- Do feature engineering for the bank and find the right age effect on the campaign.
+
+import org.apache.spark.sql.functions.udf
+
+
+def agecategory = udf((age:Int) => {
+     | age match {
+     | case t if t < 30 => "young"
+     | case t if t > 65 => "old"
+     | case _ => "mid" }
+     | }
+     | )
+
+
+val newdf = df.withColumn("agegroup",agecategory(df("age")))
+
+
+newdf.show(5)
+
+
+newdf.groupBy("agegroup","y").count().sort($"count".desc).show()
+
+:quit
+
+
+**************THANK YOU!**************
